@@ -72,7 +72,7 @@ class MainInterface:
     _root_path = os.getcwd()
     _allowed_paths = [os.path.join(_root_path, 'Temp')]
     _model_uninstall_progress_counter = 0
-    _https_enabled = os.path.exists('certs/servercert.pem') and os.path.exists('certs/serverkey.pem')
+    _https_enabled = False#os.path.exists('certs/servercert.pem') and os.path.exists('certs/serverkey.pem')
     _is_asr_enabled = False
 
     def handle_file_upload(self, files, request: gr.Request):
@@ -259,7 +259,7 @@ class MainInterface:
             gr.Dropdown(interactive=True),
             gr.Button(interactive=True),
             gr.Button(interactive=True),
-            gr.Button(interactive=True),
+            gr.Button(interactive=True)
         ] + [gr.Button(interactive=True)] * len(self._sample_question_components)
 
         if self._is_asr_enabled:
@@ -490,25 +490,31 @@ class MainInterface:
             self._handle_events()
             self._handle_links()
         interface.queue()
-        port = self._get_free_port()
+        port,ip = self._get_free_port()
         self._open_app(port)
 
         if (self._https_enabled):
+            print(f"local Server: https://{ip}:{port}")
             interface.launch(
                 favicon_path=os.path.join(os.path.dirname(__file__), 'assets/nvidia_logo.png'),
                 show_api=False,
-                share=True,
+                #share=True,
+                server_name="0.0.0.0",
                 server_port=port,
                 allowed_paths=['Temp/Temp_Images/.', 'Temp/.'],
                 ssl_certfile='certs/servercert.pem',
-                ssl_keyfile='certs/serverkey.pem'
+                ssl_keyfile='certs/serverkey.pem',
+                quiet=True
             )
         else:
+            print(f"local Server: http://{ip}:{port}")
             interface.launch(
                 favicon_path=os.path.join(os.path.dirname(__file__), 'assets/nvidia_logo.png'),
                 show_api=False,
-                share=True,
+                #share=True,
+                server_name="0.0.0.0",
                 server_port=port,
+                quiet=True,
                 allowed_paths=['Temp/Temp_Images/.', 'Temp/.']
             )
 
@@ -529,7 +535,7 @@ class MainInterface:
                     print('OS error', e)
                     break 
         sock.close()
-        return port
+        return port,socket.gethostbyname(socket.gethostname())
 
     def _open_app(self, port):
         def launch_thread(cookie):
@@ -540,6 +546,7 @@ class MainInterface:
             print(f'Open {launch_url} in browser to start ChatRTX')
             webbrowser.open(launch_url)
             return None
+        
         
         threading.Thread(target=launch_thread, args=(self._secure_cookie,)).start()
         return None
